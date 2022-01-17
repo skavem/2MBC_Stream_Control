@@ -6,11 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <script>
+    /// Incoming messages
     function message_handler(event){
         input = JSON.parse(event.data);
         if(input.hasOwnProperty("books")) {
-            console.log(JSON.parse(input["books"]));
-
             JSON.parse(input["books"], (abb, full_name) => {
                 document.getElementById("book").add(new Option(full_name, abb))
             })
@@ -23,62 +22,55 @@
         }
     }
 
+    /// Creating Web Socket
     function create_websocket(alert_field) {        
         ws = new WebSocket('ws://localhost:8765');
 
         ws.addEventListener("close", function() {
             alert_field.innerText = "Нет соединения с хостом";
             alert_field.classList.replace("d-none", "d-block");
-            setTimeout(function() { ws = new WebSocket('ws://localhost:8765'); }, 1000)
+            setTimeout(function() { create_websocket(alert_field); }, 1000)
         })
         ws.addEventListener('open', function () { 
             ws.send("Transmitter"); 
             alert_field.classList.replace("d-block", "d-none");
         });
         ws.addEventListener('message', function(event) { message_handler(event) });
-        return ws;
     }
 
+    /// Send data to host
+    function send_data(ws, form) {
+        form_data = new FormData(form);
+        var to_json = {};
+        form_data.forEach((value, key) => to_json[key] = value);
+        ws.send(JSON.stringify(to_json));
+    }
+
+    /// On body loaded
     function on_load_script(){        
         alert_field = document.getElementById("alert-danger");
 
-        ws = new WebSocket('ws://localhost:8765');
+        /// Web Socket
+        create_websocket(alert_field);
 
-        ws.addEventListener("close", function() {
-            alert_field.innerText = "Нет соединения с хостом";
-            alert_field.classList.replace("d-none", "d-block");
-            setTimeout(function() { ws = new WebSocket('ws://localhost:8765'); }, 1000)
-        })
-        ws.addEventListener('open', function () { 
-            ws.send("Transmitter"); 
-            alert_field.classList.replace("d-block", "d-none");
-        });
-        ws.addEventListener('message', function(event) { message_handler(event) });
-
-        function sendData(form) {
-            form_data = new FormData(form);
-            var to_json = {};
-            form_data.forEach((value, key) => to_json[key] = value);
-            ws.send(JSON.stringify(to_json));
-        }
-
+        /// Form
         Bible_verse_to_send = document.getElementById("Bible_verse_to_send");
         Bible_verse_to_send.addEventListener("submit", function (event) {
             event.preventDefault();
-            sendData(Bible_verse_to_send);
+            send_data(ws, Bible_verse_to_send);
         } );
         Bible_verse_to_send.addEventListener("reset", function (event) {
             event.preventDefault();
             ws.send(JSON.stringify({"hide_all_text":true}));
         } );
 
+        /// Book change
         book_field = document.getElementById("book")
-
         book_field.addEventListener("change", function() {console.log(book_field.options[book_field.selectedIndex])})
     }
     </script>
 
-    <title>Document</title>
+    <title>Transmitter</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
 </head>

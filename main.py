@@ -26,14 +26,15 @@ async def message_handler(websocket):
         if (websocket in transmitters):
             if "hide_all_text" in parcel:
                 websockets.broadcast(recievers, json.dumps(parcel, ensure_ascii=False))
-                
+
             if "book" in parcel:
                 try: 
                     verse = Bible.execute(
                         f"SELECT v.text FROM Verse v \
                             WHERE v.chapter_of = (\
                             SELECT c.id FROM Chapter c \
-                            WHERE c.book_of = '{parcel['book']}' AND c.number = {int(parcel['ch'])}) AND v.number = {int(parcel['vr'])};").fetchall()[0][0]
+                            WHERE c.book_of = '{parcel['book']}' AND c.number = {int(parcel['ch'])}) AND v.number = {int(parcel['vr'])};"
+                    ).fetchall()[0][0]
                     websockets.broadcast(recievers, json.dumps({ "text": verse }, ensure_ascii=False))
                 except Exception as e:
                     await websocket.send(json.dumps({ "error": str(e) }, ensure_ascii=False))
