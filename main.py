@@ -1,13 +1,17 @@
 import asyncio
 import websockets
 import json
+import sqlite3
 
 recievers = set()
 transmitters = set()
 with open("ru.json", encoding="utf-8") as f:
     Holy_Bible = json.load(f)
-with open("transitions.json", encoding="utf-8") as f:
-    Bible_books = json.load(f)
+
+con = sqlite3.connect("local.db")
+Bible = con.cursor()
+Bible.execute("SELECT b.abbrev, b.full_name FROM Book b;")
+Books = dict(Bible.fetchall())
 
 async def message_handler(websocket):
     async for parcel in websocket:
@@ -15,7 +19,7 @@ async def message_handler(websocket):
 
         if (parcel == "Transmitter"):
             transmitters.add(websocket)
-            await websocket.send(json.dumps({"books": json.dumps(Bible_books, ensure_ascii=False)}, ensure_ascii=False))
+            await websocket.send(json.dumps({"books": json.dumps(Books, ensure_ascii=False)}, ensure_ascii=False))
             continue
 
         parcel = json.loads(parcel)
@@ -23,7 +27,11 @@ async def message_handler(websocket):
             if "hide_all_text" in parcel:
                 websockets.broadcast(recievers, json.dumps(parcel, ensure_ascii=False))
             if "book" in parcel:
-                verse = Holy_Bible[parcel["book"]][int(parcel["ch"]) - 1][int(parcel["vr"]) - 1]
+                verse = Bible.execute(
+                    f"SELECT v.text FROM Verse v \
+                        WHERE v.chapter_of = (\
+                        SELECT c.id FROM Chapter c \
+                        WHERE c.book_of = '{parcel['book']}' AND c.number = {int(parcel['ch'])}) AND v.number = {int(parcel['vr'])};").fetchall()[0][0]
                 websockets.broadcast(recievers, json.dumps({ "text": verse }, ensure_ascii=False))
 
 async def handler(websocket):
