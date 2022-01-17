@@ -9,20 +9,50 @@
     function message_handler(event){
         input = JSON.parse(event.data);
         if(input.hasOwnProperty("books")) {
-            console.log(JSON.parse(input["books"]))
+            console.log(JSON.parse(input["books"]));
 
             JSON.parse(input["books"], (abb, full_name) => {
                 document.getElementById("book").add(new Option(full_name, abb))
             })
         }
+        if(input.hasOwnProperty("error")) {
+            console.log(JSON.parse(input["error"]));
+            alert_field = document.getElementById("alert-danger");
+            alert_field.innerText = input["error"];
+            alert_field.classList.replace("d-none", "d-block");
+        }
     }
 
-    function on_load_script(){
-        connected = false;
-        
+    function create_websocket(alert_field) {        
         ws = new WebSocket('ws://localhost:8765');
 
-        ws.addEventListener('open', function () { ws.send("Transmitter"); });
+        ws.addEventListener("close", function() {
+            alert_field.innerText = "Нет соединения с хостом";
+            alert_field.classList.replace("d-none", "d-block");
+            setTimeout(function() { ws = new WebSocket('ws://localhost:8765'); }, 1000)
+        })
+        ws.addEventListener('open', function () { 
+            ws.send("Transmitter"); 
+            alert_field.classList.replace("d-block", "d-none");
+        });
+        ws.addEventListener('message', function(event) { message_handler(event) });
+        return ws;
+    }
+
+    function on_load_script(){        
+        alert_field = document.getElementById("alert-danger");
+
+        ws = new WebSocket('ws://localhost:8765');
+
+        ws.addEventListener("close", function() {
+            alert_field.innerText = "Нет соединения с хостом";
+            alert_field.classList.replace("d-none", "d-block");
+            setTimeout(function() { ws = new WebSocket('ws://localhost:8765'); }, 1000)
+        })
+        ws.addEventListener('open', function () { 
+            ws.send("Transmitter"); 
+            alert_field.classList.replace("d-block", "d-none");
+        });
         ws.addEventListener('message', function(event) { message_handler(event) });
 
         function sendData(form) {
@@ -55,6 +85,9 @@
 <body onload="on_load_script()">
     <div class="d-flex justify-content-center align-items-center mt-5">
         <div class="col-10 m-3 text-center">
+            <div id="alert-danger" class="alert alert-danger d-none" role="alert">
+                Нет подключения к хосту!
+            </div>
             <form class="d-flex justify-content-center align-items-center flex-wrap flex-lg-nowrap" id="Bible_verse_to_send">
                 <label for="label"></label>
                 <select name="book" id="book" class="form-select m-1" multiple></select>
