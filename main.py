@@ -38,6 +38,26 @@ async def message_handler(websocket):
                     websockets.broadcast(recievers, json.dumps({ "text": verse }, ensure_ascii=False))
                 except Exception as e:
                     await websocket.send(json.dumps({ "error": str(e) }, ensure_ascii=False))
+            
+            if "get_chapters" in parcel:
+                await websocket.send(json.dumps({ "number_of_chapters": 
+                Bible.execute(f"SELECT COUNT(c.id) FROM Chapter c WHERE c.book_of = '{parcel['get_chapters']}'").fetchall()[0][0] }, ensure_ascii=False))
+
+            if "get_verses" in parcel:
+                number_of_verses = Bible.execute(f"SELECT COUNT(v.id) FROM Verse v \
+                                                WHERE v.chapter_of = (\
+                                                SELECT c.id FROM Chapter c WHERE c.book_of = '{parcel['get_verses']['book']}' \
+                                                AND c.number = {parcel['get_verses']['ch']})").fetchall()[0][0]
+
+                verses = dict(Bible.execute(f"SELECT v.number, v.text FROM Verse v \
+                                            WHERE v.chapter_of = (\
+                                            SELECT c.id FROM Chapter c WHERE c.book_of = '{parcel['get_verses']['book']}' \
+                                            AND c.number = {parcel['get_verses']['ch']})").fetchall())
+
+                await websocket.send(json.dumps({
+                                        "number_of_verses": number_of_verses,
+                                        "verses": verses
+                                        }, ensure_ascii=False))
 
 async def handler(websocket):
     recievers.add(websocket)
