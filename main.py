@@ -5,8 +5,6 @@ import sqlite3
 
 recievers = set()
 transmitters = set()
-with open("ru.json", encoding="utf-8") as f:
-    Holy_Bible = json.load(f)
 
 con = sqlite3.connect("local.db")
 Bible = con.cursor()
@@ -15,12 +13,13 @@ Books = dict(Bible.fetchall())
 
 async def message_handler(websocket):
     async for parcel in websocket:
-        print(parcel)
-
         if (parcel == "Transmitter"):
             transmitters.add(websocket)
             await websocket.send(json.dumps({"books": json.dumps(Books, ensure_ascii=False)}, ensure_ascii=False))
+            print("[Info]: Transmitter connected")
             continue
+        
+        print("[Parcel]: ", parcel)
 
         parcel = json.loads(parcel)
         if (websocket in transmitters):
@@ -61,8 +60,18 @@ async def message_handler(websocket):
 
 async def handler(websocket):
     recievers.add(websocket)
-    print('client connected')
-    await message_handler(websocket)
+    print('[Info]: Client connected')
+    try:
+        await message_handler(websocket)
+    except websockets.exceptions.ConnectionClosed:
+        await websocket.close()
+        recievers.remove(websocket)
+        try:
+            transmitters.remove(websocket)
+            print("[Info]: Transmitter disconnected")
+        except: 
+            print("[Info]: Reciever disconnected")
+        return
 
 async def main():
     async with websockets.serve(handler, "localhost", 8765):

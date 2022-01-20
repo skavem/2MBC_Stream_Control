@@ -114,6 +114,10 @@
 
         verses_field = document.getElementById("vr");
         verses_field.addEventListener("dblclick", function() {send_data(Bible_verse_to_send);});
+
+        window.addEventListener("beforeunload", function(){
+            ws.close();
+        }, false);
     }
     </script>
 
