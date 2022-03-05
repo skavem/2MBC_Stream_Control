@@ -9,134 +9,141 @@
     /// Incoming messages
     function message_handler(event){
         message = JSON.parse(event.data);
-        console.log(message)
+        console.log(message);
         /// If verse
         if(message.hasOwnProperty("books")) {
-            let books = document.getElementById("book");
+            var books = $('#book');
             JSON.parse(message["books"], (abb, full_name) => {
-                if (abb) books.add(new Option(full_name, abb));
+                if (abb) books.append($('<option>', { value: abb, text:full_name }));
             });
-            books.selectedIndex = 0;
+            books.prop('selectedIndex', 0);
             get_chapters();
         }
         /// If number of chapters
         if(message.hasOwnProperty("number_of_chapters")) {
-            console.log("[Info]: " + message["number_of_chapters"]);
-            let chapters = document.getElementById("ch");
-            while (chapters.options.length > 0) chapters.remove(0);
-            for (let index = 1; index <= message["number_of_chapters"]; index++) {
-                chapters.add(new Option(index, index));
+            let chapters = $('#ch');
+            chapters.empty();
+            for (let index = 1; index <= message['number_of_chapters']; index++) {
+                chapters.append($('<option>', { value: index, text: index }));
             }
-            chapters.selectedIndex = 0;
+            chapters.prop('selectedIndex', 0);
             get_verses();
         }
         /// If number of verses
         if(message.hasOwnProperty("number_of_verses")) {
-            console.log("[Info]: " + message["number_of_verses"]);
-            let verses = document.getElementById("vr");
-            while (verses.options.length > 0) verses.remove(0);
-            for (let index = 1; index <= message["number_of_verses"]; index++) {
-                verses.add(new Option(index + ": " + message["verses"][index], index));
+            let verses = $('#vr');
+            verses.empty();
+            for (let index = 1; index <= message['number_of_verses']; index++) {
+                verses.append($('<option>', { value: index, text: index+": "+message['verses'][index] }))
             }
         }
         /// If error
         if(message.hasOwnProperty("error")) {
             console.log("[Error]: " + message["error"]);
-            alert_field = document.getElementById("alert-danger");
-            alert_field.innerText = message["error"];
-            alert_field.classList.replace("d-none", "d-block");
-            setTimeout(function() { alert_field.classList.replace("d-block", "d-none"); }, 4000);
+            alert_field.text(message["error"]);
+            alert_field.show();
+            setTimeout(function() { alert_field.hide(); }, 4000);
         }
     }
 
     /// Creating Web Socket
-    function create_websocket(alert_field) {        
+    function create_websocket() {        
         ws = new WebSocket('ws://localhost:8765');
 
         ws.addEventListener("close", function() {
-            alert_field.innerText = "Нет соединения с хостом";
-            alert_field.classList.replace("d-none", "d-block");
-            setTimeout(function() { create_websocket(alert_field); }, 1000);
+            alert_field.text("Нет соединения с хостом");
+            alert_field.show();
+            setTimeout(function() { create_websocket(); }, 1000);
         })
         ws.addEventListener('open', function () { 
             ws.send("Transmitter"); 
-            alert_field.classList.replace("d-block", "d-none");
+            alert_field.hide();
         });
-        ws.addEventListener('message', function(event) { message_handler(event) });
+        ws.addEventListener('message', function(event) { 
+            message_handler(event); 
+        });
     }
 
     /// Send data to host
     function send_data(form) {
-        form_data = new FormData(form);
+        var unindexed_array = form.serializeArray();
         var to_json = {};
-        form_data.forEach((value, key) => to_json[key] = value);
+
+        $.map(unindexed_array, function(n, i) {
+            to_json[n['name']] = n['value']
+        });
+        
         ws.send(JSON.stringify(to_json));
     }
 
     /// Change chapters for book
     function get_chapters() {
-        ws.send(JSON.stringify({"get_chapters": book_field[book_field.selectedIndex].value}));
+        ws.send(JSON.stringify({"get_chapters": book_field.prop('value')}));
     }
 
     /// Change verses for chapter
     function get_verses(){
         ws.send(JSON.stringify(
-            { "get_verses": { "book": book_field[book_field.selectedIndex].value,
-                              "ch": chapter_field[chapter_field.selectedIndex].value } 
+            { "get_verses": { "book": book_field.prop('value'),
+                              "ch": chapter_field.prop('value') } 
             }
         ));
     }
 
     /// On body loaded
     function on_load_script(){        
-        alert_field = document.getElementById("alert-danger");
+        alert_field = $("#alert-danger");
+        alert_field.hide();
 
         /// Web Socket
-        create_websocket(alert_field);
+        create_websocket();
 
         /// Form
-        Bible_verse_to_send = document.getElementById("Bible_verse_to_send");
-        Bible_verse_to_send.addEventListener("submit", function (event) {
+        Bible_verse_to_send = $("#Bible_verse_to_send");
+        Bible_verse_to_send.on("submit", function (event) {
             event.preventDefault();
             send_data(Bible_verse_to_send);
         } );
-        Bible_verse_to_send.addEventListener("reset", function (event) {
+        Bible_verse_to_send.on("reset", function (event) {
             event.preventDefault();
             ws.send(JSON.stringify({"hide_all_text": true}));
         } );
 
         /// Book change
-        book_field = document.getElementById("book");
-        book_field.addEventListener("input", get_chapters);
+        book_field = $("#book");
+        book_field.on("input", get_chapters);
 
-        chapter_field = document.getElementById("ch");
-        chapter_field.addEventListener("change", get_verses);
+        chapter_field = $("#ch");
+        chapter_field.on("change", get_verses);
 
         verses_field = document.getElementById("vr");
-        verses_field.addEventListener("dblclick", function() {send_data(Bible_verse_to_send);});
+        verses_field.addEventListener("dblclick", function() {
+            send_data(Bible_verse_to_send);
+        });
 
-        window.addEventListener("beforeunload", function(){
+        $(window).on("beforeunload", function(){
             ws.close();
-        }, false);
+        });
     }
     </script>
 
     <title>Transmitter</title>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/js/bootstrap.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery.min.js"></script>
 </head>
 
 <body onload="on_load_script()">
     <div class="d-flex justify-content-center align-items-center mt-5">
         <div class="col-10 m-3 text-center">
-            <div id="alert-danger" class="alert alert-danger d-none" role="alert">
+            <div id="alert-danger" class="alert alert-danger" role="alert">
                 Нет подключения к хосту!
             </div>
             <form class="d-flex justify-content-center align-items-center flex-wrap" id="Bible_verse_to_send">
-                <div class="d-flex flex-nowrap m-1 flex-grow-1">
-                    <select name="book" id="book" class="form-select m-1" multiple size="6"></select>
-                    <select name="ch" id="ch" class="form-select m-1" multiple size="6"></select>
+                <div class="d-flex flex-nowrap m-1 ms-0 me-0 flex-grow-1">
+                    <select name="book" id="book" class="form-select me-2" multiple size="6"></select>
+                    <select name="ch" id="ch" class="form-select" multiple size="6"></select>
                 </div>
                 <select name="vr" id="vr" class="form-select m-1" multiple size="10"></select>
                 <div class="d-flex flex-nowrap flex-lg-wrap">
