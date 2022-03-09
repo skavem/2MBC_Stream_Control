@@ -34,29 +34,45 @@ async def message_handler(websocket):
                             SELECT c.id FROM Chapter c \
                             WHERE c.book_of = '{parcel['book']}' AND c.number = {int(parcel['ch'])}) AND v.number = {int(parcel['vr'])};"
                     ).fetchall()[0][0]
-                    websockets.broadcast(recievers, json.dumps({ "text": verse }, ensure_ascii=False))
+                    verse_reference = Bible.execute(f"SELECT b.full_name FROM Book b WHERE b.abbrev='{parcel['book']}'").fetchall()[0][0] + f" {parcel['ch']}:{parcel['vr']}"
+                    websockets.broadcast(recievers, json.dumps({ 'text': verse, 'ref': verse_reference }, ensure_ascii=False))
                 except Exception as e:
                     await websocket.send(json.dumps({ "error": str(e) }, ensure_ascii=False))
             
             if "get_chapters" in parcel:
                 await websocket.send(json.dumps({ "number_of_chapters": 
-                Bible.execute(f"SELECT COUNT(c.id) FROM Chapter c WHERE c.book_of = '{parcel['get_chapters']}'").fetchall()[0][0] }, ensure_ascii=False))
+                Bible.execute(
+                    f"SELECT COUNT(c.id) FROM Chapter c WHERE c.book_of = '{parcel['get_chapters']}'").fetchall()[0][0] }, 
+                    ensure_ascii=False)
+                )
 
             if "get_verses" in parcel:
-                number_of_verses = Bible.execute(f"SELECT COUNT(v.id) FROM Verse v \
-                                                WHERE v.chapter_of = (\
-                                                SELECT c.id FROM Chapter c WHERE c.book_of = '{parcel['get_verses']['book']}' \
-                                                AND c.number = {parcel['get_verses']['ch']})").fetchall()[0][0]
+                number_of_verses = Bible.execute(
+                    f"SELECT COUNT(v.id) FROM Verse v \
+                    WHERE v.chapter_of = (\
+                    SELECT c.id FROM Chapter c WHERE c.book_of = '{parcel['get_verses']['book']}' \
+                    AND c.number = {parcel['get_verses']['ch']})")\
+                .fetchall()[0][0]
 
-                verses = dict(Bible.execute(f"SELECT v.number, v.text FROM Verse v \
-                                            WHERE v.chapter_of = (\
-                                            SELECT c.id FROM Chapter c WHERE c.book_of = '{parcel['get_verses']['book']}' \
-                                            AND c.number = {parcel['get_verses']['ch']})").fetchall())
+                verses = dict(Bible.execute(
+                    f"SELECT v.number, v.text FROM Verse v \
+                    WHERE v.chapter_of = (\
+                    SELECT c.id FROM Chapter c WHERE c.book_of = '{parcel['get_verses']['book']}' \
+                    AND c.number = {parcel['get_verses']['ch']})")
+                .fetchall())
 
-                await websocket.send(json.dumps({
-                                        "number_of_verses": number_of_verses,
-                                        "verses": verses
-                                        }, ensure_ascii=False))
+                await websocket.send(
+                    json.dumps(
+                        {"number_of_verses": number_of_verses,
+                        "verses": verses},
+                        ensure_ascii=False)
+                    )
+                
+            if "find_verse" in parcel:
+                verses = Bible.execute(f"SELECT v.text, v.number, c.number, b.abbrev \
+                    FROM Verse v INNER JOIN Chapter c ON v.chapter_of = c.id INNER JOIN Book b ON c.book_of = b.abbrev\
+                    WHERE v.text LIKE '%{parcel['find_verse']}%';").fetchall()
+                await websocket.send(json.dumps({'search_result': verses[:50]}, ensure_ascii=False))
 
 async def handler(websocket):
     recievers.add(websocket)
@@ -77,4 +93,8 @@ async def main():
     async with websockets.serve(handler, "localhost", 8765):
         await asyncio.Future()
 
-asyncio.run(main())
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print('[Warning]: Exiting because of keyboard interrupt')
