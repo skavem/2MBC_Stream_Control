@@ -5,6 +5,13 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <title>Transmitter</title>
+
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-icons.css">
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/jquery.min.js"></script>
+
     <script>
     /// Incoming messages
     function message_handler(event){
@@ -37,6 +44,19 @@
                 verses.append($('<option>', { value: index, text: index+": "+message['verses'][index] }))
             }
         }
+        /// If search
+        if(message.hasOwnProperty('search_result')) {
+            let found_vrs = $('#found_vrs'); 
+            let verses = message['search_result'];
+            found_vrs.empty();
+            for (let i = 0; i < verses.length; i++) {
+                verse = verses[i];
+                found_vrs.append($('<option>', {
+                    value: verse[3]+";"+verse[2]+";"+verse[1], 
+                    text: verse[3]+" "+verse[2]+":"+verse[1]+" "+verse[0], class: 'text-wrap'
+                }));
+            }
+        }
         /// If error
         if(message.hasOwnProperty("error")) {
             console.log("[Error]: " + message["error"]);
@@ -47,7 +67,7 @@
     }
 
     /// Creating Web Socket
-    function create_websocket() {        
+    function create_websocket() {
         ws = new WebSocket('ws://localhost:8765');
 
         ws.addEventListener("close", function() {
@@ -99,49 +119,79 @@
         create_websocket();
 
         /// Form
-        Bible_verse_to_send = $("#Bible_verse_to_send");
-        Bible_verse_to_send.on("submit", function (event) {
+        Bible_send = $("#Bible_send");
+        Bible_send.on("submit", function (event) {
             event.preventDefault();
-            send_data(Bible_verse_to_send);
+            send_data(Bible_send);
         } );
-        Bible_verse_to_send.on("reset", function (event) {
+        Bible_send.on("reset", function (event) {
             event.preventDefault();
             ws.send(JSON.stringify({"hide_all_text": true}));
         } );
 
-        /// Book change
+        /// Bible navigation
         book_field = $("#book");
-        book_field.on("input", get_chapters);
+        book_field.on("change", get_chapters);
 
         chapter_field = $("#ch");
         chapter_field.on("change", get_verses);
 
-        verses_field = document.getElementById("vr");
-        verses_field.addEventListener("dblclick", function() {
-            send_data(Bible_verse_to_send);
+        verses_field = $("#vr");
+        verses_field.on("dblclick", function() {
+            send_data(Bible_send);
         });
 
+        /// Bible search
+        $('#Bible_search').on('submit', function (event) {
+            event.preventDefault();
+            ws.send(JSON.stringify({'find_verse': $('#search_str').prop('value')}));
+        });
+
+        $('#found_vrs').on('dblclick', function () {
+            option_array = $('#found_vrs').val()[0].split(';');
+            $('#book').val(option_array[0]).change();
+            setTimeout(function() { $('#ch').val(option_array[1]).change(); }, 100);
+            setTimeout(function() { $('#vr').val(option_array[2]).change(); }, 400);
+        });
+
+        /// Close socket before closing
         $(window).on("beforeunload", function(){
             ws.close();
         });
     }
+
+    /// On page ready (loaded) run
+    $(document).ready(on_load_script);
     </script>
-
-    <title>Transmitter</title>
-
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <script src="js/bootstrap.min.js"></script>
-    <script src="js/jquery.min.js"></script>
 </head>
 
-<body onload="on_load_script()">
-    <div class="d-flex justify-content-center align-items-center mt-5">
+<body>
+    <nav class="navbar sticky-top navbar-expand-sm navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand">2MBC tech</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="true" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarToggle">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a href="#" aria-current="page" class="nav-link active">Библия</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link disabled">Песни (не работает)</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="d-flex justify-content-center align-items-center mt-2">
         <div class="col-10 m-3 text-center">
             <div id="alert-danger" class="alert alert-danger" role="alert">
                 Нет подключения к хосту!
             </div>
-            <form class="d-flex justify-content-center align-items-center flex-wrap" id="Bible_verse_to_send">
-                <div class="d-flex flex-nowrap m-1 ms-0 me-0 flex-grow-1">
+            <form class="d-flex justify-content-center align-items-center flex-wrap border-0 border-bottom pb-3" id="Bible_send">
+                <div class="d-flex flex-nowrap m-1 flex-grow-1">
                     <select name="book" id="book" class="form-select me-2" multiple size="6"></select>
                     <select name="ch" id="ch" class="form-select" multiple size="6"></select>
                 </div>
@@ -151,6 +201,14 @@
                     <button type="reset" class="btn btn-secondary m-1">Спрятать!</button>
                 </div>
             </form>
+
+            <form action="" class="d-flex justify-content-center m-1 mt-2 pt-3" id="Bible_search">
+                <input type="text" name="search_str" id="search_str" class="form-control">
+                <button type="submit" class="btn btn-primary ms-2"><i class="bi-search"></i></button>
+            </form>
+            <div class="m-1 mt-2">
+                <select id="found_vrs" class="form-select" multiple size="5"></select>
+            </div>
         </div>
     </div>
 </body>

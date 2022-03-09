@@ -10,11 +10,16 @@
 
         function start_ws(){
             ws = new WebSocket('ws://localhost:8765');
-            ws.addEventListener('message', function(event) { message_handler(event) });
+
+            ws.addEventListener("close", function() {
+                setTimeout(function() { start_ws(); }, 1000);
+            })
+            ws.addEventListener('message', function(event) { 
+                message_handler(event); 
+            });
         }
 
         function message_handler(event){
-            text = document.getElementById('text_data')
             input = JSON.parse(event.data);
 
             if(input.hasOwnProperty("hide_all_text")) {
@@ -23,7 +28,9 @@
                 return;
             }
             if(input.hasOwnProperty("text")) {
-                text.textContent = input["text"];
+                console.log(input);
+                document.getElementById('text_data').textContent = input['text'];
+                document.getElementById('reference').textContent = input['ref'];
                 if (!text_shown) {
                     document.getElementById("contents").animate([{opacity: 0}, {opacity: 1}], {duration: 1000, fill: "forwards"});
                 }
@@ -71,8 +78,9 @@
 <body onload="on_load_script();">
     <div class="d-flex justify-content-center vh-100">
         <div id="contents" class="d-block col-10 d-flex align-items-end justify-content-center">
-            <div class="m-1 bg-dark bg-opacity-75 rounded-3 d-flex align-items-center justify-content-center">
-                <p id="text_data" class="m-3 text-center fs-1 fw-bold text-white text-wrap">Some text</p>
+            <div class="m-1 bg-dark bg-opacity-75 rounded-3 d-row align-items-center justify-content-center">
+                <p id="text_data" class="m-3 text-center fw-bold text-white" style="font-size: 3em;">Стих</p>
+                <p id="reference" class="m-3 text-end fw-bold text-white" style="font-size: 1.5em;">Ссылка</p>
             </div>
         </div>
     </div>
