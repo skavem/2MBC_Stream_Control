@@ -1,4 +1,5 @@
 import asyncio
+from unittest import case
 import websockets
 import json
 import sqlite3
@@ -6,27 +7,29 @@ import sqlite3
 recievers = set()
 transmitters = set()
 
-con = sqlite3.connect("local.db")
+con = sqlite3.connect('local-remaster.db')
 Bible = con.cursor()
-Bible.execute("SELECT b.abbrev, b.full_name FROM Book b;")
-Books = dict(Bible.fetchall())
+
+Books = dict(Bible.execute('SELECT b.abbrev, b.full_name FROM Book b;').fetchall())
+Songs = list(Bible.execute('SELECT s.id, s.number, s.name FROM Song s ORDER BY s.number;').fetchall())
 
 async def message_handler(websocket):
     async for parcel in websocket:
-        if (parcel == "Transmitter"):
+        if (parcel == 'Transmitter'):
             transmitters.add(websocket)
-            await websocket.send(json.dumps({"books": json.dumps(Books, ensure_ascii=False)}, ensure_ascii=False))
-            print("[Info]: Transmitter connected")
+            await websocket.send(json.dumps({'books': json.dumps(Books, ensure_ascii=False)}, ensure_ascii=False))
+            await websocket.send(json.dumps({'songs': json.dumps(Songs, ensure_ascii=False)}, ensure_ascii=False))
+            print('[Info]: Transmitter connected')
             continue
         
-        print("[Parcel]: ", parcel)
+        print('[Parcel]: ', parcel)
 
         parcel = json.loads(parcel)
         if (websocket in transmitters):
-            if "hide_all_text" in parcel:
-                websockets.broadcast(recievers, json.dumps(parcel, ensure_ascii=False))
+            if 'hide_verse' in parcel:
+                websockets.broadcast(recievers, json.dumps({'hide_verse': True}, ensure_ascii=False))
 
-            if "book" in parcel:
+            if 'book' in parcel:
                 try: 
                     verse = Bible.execute(
                         f"SELECT v.text FROM Verse v \
@@ -34,8 +37,10 @@ async def message_handler(websocket):
                             SELECT c.id FROM Chapter c \
                             WHERE c.book_of = '{parcel['book']}' AND c.number = {int(parcel['ch'])}) AND v.number = {int(parcel['vr'])};"
                     ).fetchall()[0][0]
-                    verse_reference = Bible.execute(f"SELECT b.full_name FROM Book b WHERE b.abbrev='{parcel['book']}'").fetchall()[0][0] + f" {parcel['ch']}:{parcel['vr']}"
-                    websockets.broadcast(recievers, json.dumps({ 'text': verse, 'ref': verse_reference }, ensure_ascii=False))
+                    verse_reference = Bible.execute(f"SELECT b.full_name \
+                        FROM Book b \
+                        WHERE b.abbrev='{parcel['book']}'").fetchall()[0][0] + f" {parcel['ch']}:{parcel['vr']}"
+                    websockets.broadcast(recievers, json.dumps({ 'verse': verse, 'ref': verse_reference }, ensure_ascii=False))
                 except Exception as e:
                     await websocket.send(json.dumps({ "error": str(e) }, ensure_ascii=False))
             
@@ -71,8 +76,84 @@ async def message_handler(websocket):
             if "find_verse" in parcel:
                 verses = Bible.execute(f"SELECT v.text, v.number, c.number, b.abbrev \
                     FROM Verse v INNER JOIN Chapter c ON v.chapter_of = c.id INNER JOIN Book b ON c.book_of = b.abbrev\
-                    WHERE v.text LIKE '%{parcel['find_verse']}%';").fetchall()
-                await websocket.send(json.dumps({'search_result': verses[:50]}, ensure_ascii=False))
+                    WHERE v.text LIKE '%{parcel['find_verse']}%' LIMIT 25;").fetchall()
+                await websocket.send(json.dumps({'search_result': verses}, ensure_ascii=False))
+                
+            if "get_couplets" in parcel:
+                couplets = Bible.execute(f'SELECT C.id, C.name, C.text \
+                    FROM Song_Couplet SC \
+                    LEFT JOIN Couplet C ON SC.couplet_id = C.id \
+                    WHERE SC.song_id = {parcel["get_couplets"]} \
+                    ORDER BY SC.number').fetchall()
+                await websocket.send(json.dumps({'couplets': couplets}, ensure_ascii=False))
+
+            if "couplet" in parcel:
+                text = Bible.execute(f'SELECT C.text FROM Couplet C \
+                    LEFT JOIN Song_Couplet SC ON SC.couplet_id = C.id \
+                    WHERE SC.song_id = {parcel["song"]} AND C.id = "{parcel["couplet"]}";').fetchone()[0]
+                websockets.broadcast(recievers, json.dumps({'couplet': text}, ensure_ascii=False))
+
+            if 'edit_type' in parcel:
+                if parcel['edit_type'] == 'edit':
+                    Bible.execute(f'UPDATE Couplet SET text = "{parcel["couplet_text"]}" WHERE id = {parcel["couplet_id"]}')
+
+                elif parcel['edit_type'] == 'new':
+                    insert_after_number = Bible.execute(f'SELECT SC.number FROM Song_Couplet SC \
+                        WHERE SC.couplet_id = {parcel["couplet_id"]}').fetchone()[0]
+                    song_id_insert_to = Bible.execute(f'SELECT SC.song_id FROM Song_Couplet SC \
+                        WHERE SC.couplet_id = {parcel["couplet_id"]}').fetchone()[0]
+
+                    Bible.execute(f'UPDATE Song_Couplet SET number = number + 1 \
+                        WHERE song_id = {song_id_insert_to} AND number > {insert_after_number}')
+                    Bible.execute(f'INSERT INTO Couplet (name, text) VALUES ("Куплет", "{parcel["couplet_text"]}")')
+
+                    new_couplet_id = Bible.lastrowid
+                    Bible.execute(f'INSERT INTO Song_Couplet (song_id, couplet_id, number) \
+                        VALUES ({song_id_insert_to}, {new_couplet_id}, {insert_after_number + 1})')
+
+                con.commit()
+
+
+            if 'remove_couplet_id' in parcel:
+                couplet_id_to_delete = parcel['remove_couplet_id']
+                update_couplets_after_number = Bible.execute(f'SELECT SC.number FROM Song_Couplet SC \
+                        WHERE SC.couplet_id = {parcel["remove_couplet_id"]}').fetchone()[0]
+                Bible.execute(f'DELETE FROM Couplet WHERE id = {couplet_id_to_delete}')
+                Bible.execute(f'UPDATE Song_Couplet SET number = number - 1\
+                    WHERE song_id = {parcel["remove_from_song_id"]} AND number > {update_couplets_after_number}')
+                Bible.execute(f'DELETE FROM Song_Couplet WHERE couplet_id = {couplet_id_to_delete}')
+
+                con.commit()
+
+            if 'couplet_move_up' in parcel:
+                song_id = parcel['move_from_song_id']
+                couplet_number = Bible.execute(f'SELECT number FROM Song_Couplet SC \
+                    WHERE couplet_id = {parcel["couplet_move_up"]} AND song_id = {song_id}').fetchone()[0]
+                if (couplet_number == 0): continue
+
+                Bible.execute(f'UPDATE Song_Couplet SET number = number + 1 \
+                    WHERE song_id = {song_id} AND number = {couplet_number - 1}')
+                Bible.execute(f'UPDATE Song_Couplet SET number = number - 1 \
+                    WHERE song_id = {song_id} AND couplet_id = {parcel["couplet_move_up"]}')
+
+                con.commit()
+
+            if 'couplet_move_down' in parcel:
+                song_id = parcel['move_from_song_id']
+                couplet_number = Bible.execute(f'SELECT number FROM Song_Couplet SC \
+                    WHERE couplet_id = {parcel["couplet_move_down"]} AND song_id = {song_id}').fetchone()[0]
+                couplets_in_song = Bible.execute(f'SELECT COUNT(id) FROM "Song_Couplet" WHERE song_id = 1').fetchone()[0]
+                if couplet_number == (couplets_in_song - 1): continue
+
+                Bible.execute(f'UPDATE Song_Couplet SET number = number - 1 \
+                    WHERE song_id = {song_id} AND number = {couplet_number + 1}')
+                Bible.execute(f'UPDATE Song_Couplet SET number = number + 1 \
+                    WHERE song_id = {song_id} AND couplet_id = {parcel["couplet_move_down"]}')
+
+                con.commit()
+
+            if 'hide_song' in parcel:
+                websockets.broadcast(recievers, json.dumps({'hide_song': True}, ensure_ascii=False));
 
 async def handler(websocket):
     recievers.add(websocket)

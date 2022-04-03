@@ -9,160 +9,11 @@
 
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
-    <script src="js/bootstrap.min.js"></script>
     <script src="js/jquery.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
 
-    <script>
-    /// Incoming messages
-    function message_handler(event){
-        message = JSON.parse(event.data);
-        console.log(message);
-        /// If verse
-        if(message.hasOwnProperty("books")) {
-            var books = $('#book');
-            JSON.parse(message["books"], (abb, full_name) => {
-                if (abb) books.append($('<option>', { value: abb, text:full_name }));
-            });
-            books.prop('selectedIndex', 0);
-            get_chapters();
-        }
-        /// If number of chapters
-        if(message.hasOwnProperty("number_of_chapters")) {
-            let chapters = $('#ch');
-            chapters.empty();
-            for (let index = 1; index <= message['number_of_chapters']; index++) {
-                chapters.append($('<option>', { value: index, text: index }));
-            }
-            chapters.prop('selectedIndex', 0);
-            get_verses();
-        }
-        /// If number of verses
-        if(message.hasOwnProperty("number_of_verses")) {
-            let verses = $('#vr');
-            verses.empty();
-            for (let index = 1; index <= message['number_of_verses']; index++) {
-                verses.append($('<option>', { value: index, text: index+": "+message['verses'][index] }))
-            }
-        }
-        /// If search
-        if(message.hasOwnProperty('search_result')) {
-            let found_vrs = $('#found_vrs'); 
-            let verses = message['search_result'];
-            found_vrs.empty();
-            for (let i = 0; i < verses.length; i++) {
-                verse = verses[i];
-                found_vrs.append($('<option>', {
-                    value: verse[3]+";"+verse[2]+";"+verse[1], 
-                    text: verse[3]+" "+verse[2]+":"+verse[1]+" "+verse[0], class: 'text-wrap'
-                }));
-            }
-        }
-        /// If error
-        if(message.hasOwnProperty("error")) {
-            console.log("[Error]: " + message["error"]);
-            alert_field.text(message["error"]);
-            alert_field.show();
-            setTimeout(function() { alert_field.hide(); }, 4000);
-        }
-    }
-
-    /// Creating Web Socket
-    function create_websocket() {
-        ws = new WebSocket('ws://localhost:8765');
-
-        ws.addEventListener("close", function() {
-            alert_field.text("Нет соединения с хостом");
-            alert_field.show();
-            setTimeout(function() { create_websocket(); }, 1000);
-        })
-        ws.addEventListener('open', function () { 
-            ws.send("Transmitter"); 
-            alert_field.hide();
-        });
-        ws.addEventListener('message', function(event) { 
-            message_handler(event); 
-        });
-    }
-
-    /// Send data to host
-    function send_data(form) {
-        var unindexed_array = form.serializeArray();
-        var to_json = {};
-
-        $.map(unindexed_array, function(n, i) {
-            to_json[n['name']] = n['value']
-        });
-        
-        ws.send(JSON.stringify(to_json));
-    }
-
-    /// Change chapters for book
-    function get_chapters() {
-        ws.send(JSON.stringify({"get_chapters": book_field.prop('value')}));
-    }
-
-    /// Change verses for chapter
-    function get_verses(){
-        ws.send(JSON.stringify(
-            { "get_verses": { "book": book_field.prop('value'),
-                              "ch": chapter_field.prop('value') } 
-            }
-        ));
-    }
-
-    /// On body loaded
-    function on_load_script(){        
-        alert_field = $("#alert-danger");
-        alert_field.hide();
-
-        /// Web Socket
-        create_websocket();
-
-        /// Form
-        Bible_send = $("#Bible_send");
-        Bible_send.on("submit", function (event) {
-            event.preventDefault();
-            send_data(Bible_send);
-        } );
-        Bible_send.on("reset", function (event) {
-            event.preventDefault();
-            ws.send(JSON.stringify({"hide_all_text": true}));
-        } );
-
-        /// Bible navigation
-        book_field = $("#book");
-        book_field.on("change", get_chapters);
-
-        chapter_field = $("#ch");
-        chapter_field.on("change", get_verses);
-
-        verses_field = $("#vr");
-        verses_field.on("dblclick", function() {
-            send_data(Bible_send);
-        });
-
-        /// Bible search
-        $('#Bible_search').on('submit', function (event) {
-            event.preventDefault();
-            ws.send(JSON.stringify({'find_verse': $('#search_str').prop('value')}));
-        });
-
-        $('#found_vrs').on('dblclick', function () {
-            option_array = $('#found_vrs').val()[0].split(';');
-            $('#book').val(option_array[0]).change();
-            setTimeout(function() { $('#ch').val(option_array[1]).change(); }, 100);
-            setTimeout(function() { $('#vr').val(option_array[2]).change(); }, 400);
-        });
-
-        /// Close socket before closing
-        $(window).on("beforeunload", function(){
-            ws.close();
-        });
-    }
-
-    /// On page ready (loaded) run
-    $(document).ready(on_load_script);
-    </script>
+    <script src="js/transmitter.js"></script>
 </head>
 
 <body>
@@ -173,20 +24,34 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarToggle">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a href="#" aria-current="page" class="nav-link active">Библия</a>
+                <ul class="nav nav-pills me-auto ms-auto" id="pills-tab" role="tablist">
+                    <li class="nav-item me-2" role="presentation">
+                        <button 
+                        class="btn btn-outline-light" 
+                        id="pills-Bible-tab" 
+                        data-bs-toggle="pill" 
+                        data-bs-target="#pills-Bible" 
+                        type="button" 
+                        aria-controls="pills-Bible" 
+                        aria-selected="true">Библия</button>
                     </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link disabled">Песни (не работает)</a>
+                    <li class="nav-item" role="presentation">
+                        <button 
+                        class="btn btn-outline-light active" 
+                        id="pills-songs-tab" 
+                        data-bs-toggle="pill"
+                        data-bs-target="#pills-songs"
+                        type="button"
+                        aria-controls="pills-songs"
+                        aria-selected="false">Песни</button>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
 
-    <div class="d-flex justify-content-center align-items-center mt-2">
-        <div class="col-10 m-3 text-center">
+    <div class="d-flex justify-content-center align-items-center mt-2 tab-content" id="pills-tabContent">
+        <div class="col-10 m-2 text-center tab-pane fade" id="pills-Bible" role="tabpanel" aria-labelledby="pills-Bible-tab">
             <div id="alert-danger" class="alert alert-danger" role="alert">
                 Нет подключения к хосту!
             </div>
@@ -198,7 +63,7 @@
                 <select name="vr" id="vr" class="form-select m-1" multiple size="10"></select>
                 <div class="d-flex flex-nowrap flex-lg-wrap">
                     <button type="submit" class="btn btn-primary m-1">Показать!</button>
-                    <button type="reset" class="btn btn-secondary m-1">Спрятать!</button>
+                    <button type="reset" class="btn btn-outline-dark m-1">Спрятать!</button>
                 </div>
             </form>
 
@@ -210,6 +75,51 @@
                 <select id="found_vrs" class="form-select" multiple size="5"></select>
             </div>
         </div>
+
+        <div class="col-10 m-2 text-center tab-pane fade show active" id="pills-songs" role="tabpanel" aria-labelledby="pills-songs-tab">
+            <form class="d-flex justify-content-center flex-column" id="Songs_send">
+                <div class="d-flex flex-nowrap flex-grow-1">
+                    <select name="song" id="song" class="form-select me-2" multiple size="10"></select>
+                    <select name="couplet" id="couplet" class="form-select me-2" multiple size="10"></select>
+                    <div class="d-flex flex-column justify-content-around">
+                        <button type="button" class="btn btn-outline-dark" id="couplet_add" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="new"><i class="bi-plus-lg"></i></button>
+                        <button type="button" class="btn btn-outline-dark" id="couplet_edit" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="edit"><i class="bi-pencil"></i></button>
+                        <button type="button" class="btn btn-outline-dark" id="couplet_delete"><i class="bi-trash"></i></button>
+                        <button type="button" class="btn btn-outline-dark" id="couplet_up"><i class="bi-caret-up"></i></button>
+                        <button type="button" class="btn btn-outline-dark" id="couplet_down"><i class="bi-caret-down"></i></button>
+                    </div>
+                </div>
+                <div class="d-flex flex-nowrap flex-lg-wrap justify-content-center mt-1">
+                    <button type="submit" class="btn btn-primary m-1">Показать!</button>
+                    <button type="reset" class="btn btn-outline-dark m-1">Спрятать!</button>
+                </div>
+            </form>
+        </div>
     </div>
+
+    <div class="modal fade" id="couplet_edit_modal" tabindex="-1" aria-labelledby="couplet_edit_modal_label" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="couplet_edit_modal_label">Изменить куплет</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+              <form id="Couplet_edit">
+                <div class="mb-3">
+                  <label for="couplet_new_text" class="col-form-label">Текст:</label>
+                  <input type="hidden" name="edit_type" id="couplet_edit_type_input">
+                  <input type="hidden" name="couplet_id" id="couplet_id_input">
+                  <textarea class="form-control" name="couplet_text" id="couplet_new_text" rows="8"></textarea>
+                </div>
+              </form>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
+              <button type="button" class="btn btn-primary" id="save_couplet_edit">Сохранить</button>
+            </div>
+          </div>
+        </div>
+      </div>
 </body>
 </html>

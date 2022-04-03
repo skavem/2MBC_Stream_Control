@@ -21,30 +21,44 @@
 
         function message_handler(event){
             input = JSON.parse(event.data);
+            console.log(input);
 
-            if(input.hasOwnProperty("hide_all_text")) {
-                document.getElementById("contents").animate([{opacity: 1}, {opacity: 0}], {duration: 1000, fill: "forwards"});
+            if (input.hasOwnProperty('hide_verse')) {
+                $verse_field.animate([{opacity: 1}, {opacity: 0}], {duration: 1000, fill: "forwards"});
                 text_shown = false;
                 return;
             }
-            if(input.hasOwnProperty("text")) {
-                console.log(input);
-                document.getElementById('text_data').textContent = input['text'];
-                document.getElementById('reference').textContent = input['ref'];
+            if (input.hasOwnProperty('verse')) {
+                $verse_field.classList.remove('d-none');
+                $song_field.classList.add('d-none');
+                $verse_text.textContent = input['verse'];
+                $reference_text.textContent = input['ref'];
                 if (!text_shown) {
-                    document.getElementById("contents").animate([{opacity: 0}, {opacity: 1}], {duration: 1000, fill: "forwards"});
+                    $verse_field.animate([{opacity: 0}, {opacity: 1}], {duration: 1000, fill: "forwards"});
                 }
                 text_shown = true;
                 return;
             }
+            if (input.hasOwnProperty('couplet')) {
+                $verse_field.classList.add('d-none');
+                $song_field.classList.remove('d-none');
+                $song_text.textContent = input['couplet'];
+                console.log(input['couplet'])
+            }
+            if (input.hasOwnProperty('hide_song')) {
+                $verse_field.classList.remove('d-none');
+                $song_field.classList.add('d-none');
+            }
         }
 
-        function on_load_script() {
+        function on_load_script() { 
+            $song_field = document.getElementById('song');
+            $song_text = document.getElementById('song_text');
+            $verse_field = document.getElementById('verse');
+            $verse_text = document.getElementById('verse_text');
+            $reference_text = document.getElementById('reference');
             start_ws();
-
-            window.addEventListener("beforeunload", function(){
-                ws.close();
-            }, false);
+            window.addEventListener("beforeunload", function(){ws.close();}, false);
         }
     </script>
 
@@ -54,10 +68,15 @@
 </head>
 <body onload="on_load_script();">
     <div class="d-flex justify-content-center vh-100">
-        <div id="contents" class="col-10 d-flex align-items-end justify-content-center">
+        <div id="verse" class="col-10 d-flex align-items-end justify-content-center">
             <div class="m-1 bg-dark bg-opacity-75 rounded-3 d-row align-items-center justify-content-center">
-                <p id="text_data" class="m-3 mb-1 text-center fw-bold text-white" style="font-size: 3em;">Стих</p>
+                <p id="verse_text" class="m-3 mb-1 text-center fw-bold text-white" style="font-size: 3em;">Стих</p>
                 <p id="reference" class="m-3 mt-0 text-end fw-bold text-white" style="font-size: 2em;">Ссылка</p>
+            </div>
+        </div>
+        <div id="song" class="col-10 d-flex align-items-center justify-content-center d-none">
+            <div class="p-1 bg-dark rounded-3 bg-opacity-75">
+                <p id="song_text" class="m-3 text-center fw-bold text-white" style="font-size: 3em; white-space: pre-line;">Песня</p>
             </div>
         </div>
     </div>

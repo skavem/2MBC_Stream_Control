@@ -51,8 +51,11 @@ function message_handler(event){
     if(message.hasOwnProperty("songs")) {
         let $songs = $('#song');
         $songs.empty();
-        JSON.parse(message['songs'], (number, text) => {
-            if (text) $songs.append($('<option>', {value: number, text: number + ': ' + text}));
+        JSON.parse(message['songs']).forEach(song_list => {
+            let id = song_list[0];
+            let number = song_list[1];
+            let text = song_list[2];
+            if (text) $songs.append($('<option>', {value: id, text: number + ': ' + text}))
         });
         $songs.prop('selectedIndex', 0);
         get_couplets();
@@ -63,7 +66,7 @@ function message_handler(event){
         let $couplets = $('#couplet');
         $couplets.empty();
         message['couplets'].forEach(couplet => {
-            if (couplet) $couplets.append($('<option>', {value: couplet[0], text: couplet[1]}));
+            if (couplet) $couplets.append($('<option>', {value: couplet[0], text: couplet[1] +": "}).append($('<span>', {text: couplet[2]})));
         });
         $couplets.prop('selectedIndex', 0);
     }
@@ -162,6 +165,9 @@ function on_load_script(){
         event.preventDefault();
         ws.send(JSON.stringify({'find_verse': $('#search_str').prop('value')}));
     });
+    $('#search_str').on('input', function() {
+        ws.send(JSON.stringify({'find_verse': $('#search_str').prop('value')}));
+    })
 
     $('#found_vrs').on('dblclick', function () {
         option_array = $('#found_vrs').val()[0].split(';');
@@ -188,6 +194,47 @@ function on_load_script(){
     $couplet_field.on('dblclick', function () {
         send_data($Songs_send); 
     });
+
+    /// Couplet editing modal
+    $('#couplet_edit_modal').on('show.bs.modal', function(event) {
+        let modal_call_type = event.relatedTarget.getAttribute('data-bs-call-type');
+        let $selectedCouplet = $('#couplet option:selected');
+
+        $('#couplet_id_input').val($selectedCouplet.val());
+
+        $('#couplet_edit_type_input').val(modal_call_type);
+
+        $('#couplet_new_text').val((modal_call_type === 'new') ? '' : $selectedCouplet.find('span').text());
+    })
+
+    /// Couplet editing
+    $Couplet_edit = $('#Couplet_edit');
+    $('#save_couplet_edit').on('click', function () {
+        send_data($Couplet_edit);
+        setTimeout(get_couplets, 200);
+        bootstrap.Modal.getInstance(document.getElementById('couplet_edit_modal')).hide()
+    });
+
+    $couplet_delete = $('#couplet_delete');
+    $couplet_delete.on('click', function () {
+        if(confirm('Удалить куплет?')) {
+            ws.send(JSON.stringify({'remove_couplet_id': $couplet_field.val()[0], 'remove_from_song_id': $song_field.val()[0]}));
+            setTimeout(get_couplets, 200);
+        } else {
+            return;
+        }
+    })
+
+    $couplet_up = $('#couplet_up');
+    $couplet_up.on('click', function () {
+        ws.send(JSON.stringify({'couplet_move_up': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}))
+        setTimeout(get_couplets, 200);
+    })
+    $couplet_down = $('#couplet_down');
+    $couplet_down.on('click', function () {
+        ws.send(JSON.stringify({'couplet_move_down': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}))
+        setTimeout(get_couplets, 200);
+    })
 
     /// Close socket before closing
     $(window).on("beforeunload", function(){
