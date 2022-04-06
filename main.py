@@ -1,5 +1,4 @@
 import asyncio
-from unittest import case
 import websockets
 import json
 import sqlite3
@@ -74,10 +73,24 @@ async def message_handler(websocket):
                     )
                 
             if "find_verse" in parcel:
-                verses = Bible.execute(f"SELECT v.text, v.number, c.number, b.abbrev \
-                    FROM Verse v INNER JOIN Chapter c ON v.chapter_of = c.id INNER JOIN Book b ON c.book_of = b.abbrev\
-                    WHERE v.text LIKE '%{parcel['find_verse']}%' LIMIT 25;").fetchall()
-                await websocket.send(json.dumps({'search_result': verses}, ensure_ascii=False))
+                if parcel['find_verse'] == '': continue
+
+                restricted_chars = ',.;"\'][<>?\{\}\\~`'
+                search_str = parcel['find_verse']
+                if any((c in restricted_chars) for c in search_str): 
+                    await websocket.send(json.dumps({'error': 'Использован запрещенный символ'}, ensure_ascii=False))
+                    continue
+                    
+                try:
+                    verses = Bible.execute(f'SELECT v.text, v.number, c.number, b.abbrev \
+                        FROM VerseSearch vs \
+                        LEFT JOIN Verse v ON vs.id = v.id \
+                        INNER JOIN Chapter c ON v.chapter_of = c.id \
+                        INNER JOIN Book b ON c.book_of = b.abbrev\
+                        WHERE VerseSearch MATCH "{search_str}" ORDER BY rank LIMIT 25').fetchall()
+                    await websocket.send(json.dumps({'search_result': verses}, ensure_ascii=False))
+                except Exception as e:
+                    await websocket.send(json.dumps({ "error": str(e) }, ensure_ascii=False))
                 
             if "get_couplets" in parcel:
                 couplets = Bible.execute(f'SELECT C.id, C.name, C.text \
@@ -95,7 +108,9 @@ async def message_handler(websocket):
 
             if 'edit_type' in parcel:
                 if parcel['edit_type'] == 'edit':
-                    Bible.execute(f'UPDATE Couplet SET text = "{parcel["couplet_text"]}" WHERE id = {parcel["couplet_id"]}')
+                    Bible.execute(f'UPDATE Couplet \
+                        SET text = "{parcel["couplet_text"]}", name = "{parcel["couplet_name"]}" \
+                        WHERE id = {parcel["couplet_id"]}')
 
                 elif parcel['edit_type'] == 'new':
                     insert_after_number = Bible.execute(f'SELECT SC.number FROM Song_Couplet SC \
@@ -105,7 +120,7 @@ async def message_handler(websocket):
 
                     Bible.execute(f'UPDATE Song_Couplet SET number = number + 1 \
                         WHERE song_id = {song_id_insert_to} AND number > {insert_after_number}')
-                    Bible.execute(f'INSERT INTO Couplet (name, text) VALUES ("Куплет", "{parcel["couplet_text"]}")')
+                    Bible.execute(f'INSERT INTO Couplet (name, text) VALUES ("{parcel["couplet_name"]}", "{parcel["couplet_text"]}")')
 
                     new_couplet_id = Bible.lastrowid
                     Bible.execute(f'INSERT INTO Song_Couplet (song_id, couplet_id, number) \

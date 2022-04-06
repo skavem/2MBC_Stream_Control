@@ -66,7 +66,13 @@ function message_handler(event){
         let $couplets = $('#couplet');
         $couplets.empty();
         message['couplets'].forEach(couplet => {
-            if (couplet) $couplets.append($('<option>', {value: couplet[0], text: couplet[1] +": "}).append($('<span>', {text: couplet[2]})));
+            if (couplet) 
+                $couplets.append($('<option>', {value: couplet[0]})
+                    .append([
+                        $('<span>', {text: couplet[1], class: 'name'}),
+                        $('<span>', {text: ': '}),
+                        $('<span>', {text: couplet[2], class: 'text'})
+                    ]));
         });
         $couplets.prop('selectedIndex', 0);
     }
@@ -204,7 +210,8 @@ function on_load_script(){
 
         $('#couplet_edit_type_input').val(modal_call_type);
 
-        $('#couplet_new_text').val((modal_call_type === 'new') ? '' : $selectedCouplet.find('span').text());
+        $('#couplet_new_name').val((modal_call_type === 'new') ? '' : $selectedCouplet.find('span.name').text());
+        $('#couplet_new_text').val((modal_call_type === 'new') ? '' : $selectedCouplet.find('span.text').text());
     })
 
     /// Couplet editing
