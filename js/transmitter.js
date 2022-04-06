@@ -77,6 +77,14 @@ function message_handler(event){
         $couplets.prop('selectedIndex', 0);
     }
 
+    if (message.hasOwnProperty('found_song_id')) {
+        $song_field.find(':selected').prop('selected', false);
+        $song_field.find(`option[value=${message['found_song_id']}]`).prop('selected', true).change();
+        setTimeout(() => {
+            $song_field.find(':selected')[0].scrollIntoView();
+        }, 100);
+    }
+
     /// If error
     if(message.hasOwnProperty("error")) {
         console.log("[Error]: " + message["error"]);
@@ -200,6 +208,13 @@ function on_load_script(){
     $couplet_field.on('dblclick', function () {
         send_data($Songs_send); 
     });
+
+    /// Song search
+    $Song_search = $('#Song_search');
+    $Song_search.on('submit', function(event) {
+        event.preventDefault();
+        send_data($Song_search);
+    })
 
     /// Couplet editing modal
     $('#couplet_edit_modal').on('show.bs.modal', function(event) {

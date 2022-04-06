@@ -106,6 +106,13 @@ async def message_handler(websocket):
                     WHERE SC.song_id = {parcel["song"]} AND C.id = "{parcel["couplet"]}";').fetchone()[0]
                 websockets.broadcast(recievers, json.dumps({'couplet': text}, ensure_ascii=False))
 
+            if 'song_search_str' in parcel:
+                found_id = Bible.execute(f'SELECT S.id FROM Song S WHERE S.name_upper LIKE "%{parcel["song_search_str"].upper()}%"').fetchall()
+                if not len(found_id):
+                    continue
+
+                await websocket.send(json.dumps({'found_song_id': found_id[0][0]}, ensure_ascii=False))
+
             if 'edit_type' in parcel:
                 if parcel['edit_type'] == 'edit':
                     Bible.execute(f'UPDATE Couplet \
