@@ -47,7 +47,7 @@
                     </li>
                 </ul>
             </div>
-            <button class="btn btn-outline-light"><i class="bi-gear"></i></button>
+            <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#settings_modal"><i class="bi-gear"></i></button>
         </div>
     </nav>
 
@@ -59,9 +59,9 @@
             <form class="d-flex justify-content-center align-items-center flex-wrap border-0 border-bottom pb-3" id="Bible_send">
                 <div class="d-flex flex-nowrap m-1 flex-grow-1">
                     <select name="book" id="book" class="form-select me-2" multiple size="6"></select>
-                    <select name="ch" id="ch" class="form-select" multiple size="6"></select>
+                    <select name="ch" id="ch" class="form-select" size="6"></select>
                 </div>
-                <select name="vr" id="vr" class="form-select m-1" multiple size="10"></select>
+                <select name="vr" id="vr" class="form-select m-1" size="10"></select>
                 <div class="d-flex flex-nowrap flex-lg-wrap">
                     <button type="submit" class="btn btn-dark m-1"><i class="bi-eye-fill"></i> Показать!</button>
                     <button type="reset" class="btn btn-outline-dark m-1"><i class="bi-eye-slash-fill"></i> Спрятать!</button>
@@ -85,8 +85,8 @@
             <form class="d-flex justify-content-center flex-column" id="Songs_send">
                 <div class="d-flex flex-nowrap flex-grow-1">
                     <div class="d-lg-flex me-2">
-                        <select name="song" id="song" class="form-select me-2" multiple size="10"></select>
-                        <select name="couplet" id="couplet" class="form-select" multiple size="5"></select>
+                        <select name="song" id="song" class="form-select me-2 mb-2" size="10"></select>
+                        <select name="couplet" id="couplet" class="form-select" size="5"></select>
                     </div>
                     <div class="d-flex flex-column justify-content-center">
                         <button type="button" class="btn btn-secondary mb-2" id="couplet_add" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="new"><i class="bi-plus-circle"></i></button>
@@ -118,7 +118,7 @@
                   <input type="hidden" name="couplet_id" id="couplet_id_input">
                   <label for="couplet_new_name" class="col-form-label">Имя куплета:</label>
                   <textarea class="form-control" name="couplet_name" id="couplet_new_name" rows="1"></textarea>
-                  <label for="couplet_new_text" class="col-form-label">Текст:</label>
+                  <label for=" " class="col-form-label">Текст:</label>
                   <textarea class="form-control" name="couplet_text" id="couplet_new_text" rows="8"></textarea>
                 </div>
               </form>
@@ -126,6 +126,31 @@
             <div class="modal-footer">
               <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
               <button type="button" class="btn btn-primary" id="save_couplet_edit">Сохранить</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal fade" id="settings_modal" tabindex="-1" aria-labelledby="settings_modal" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Настройки</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group mb-2">
+                    <span class="input-group-text" id="label_addon_ws_ip">IP:</span>
+                    <input class="form-control" type="text" id="ws_ip" aria-describedby="label_addon_ws_ip" value="192.168.1.100">
+                </div>
+                <div class="input-group">
+                    <span class="input-group-text" id="label_addon_ws_port">Порт:</span>
+                    <input class="form-control" type="text" id="ws_port" aria-describedby="label_addon_ws_port" value="8765">
+                </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
+              <button type="button" class="btn btn-dark" id="save_settings">Сохранить</button>
             </div>
           </div>
         </div>

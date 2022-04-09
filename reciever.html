@@ -9,7 +9,7 @@
         var text_shown = false; 
 
         function start_ws(){
-            ws = new WebSocket('ws://localhost:8765');
+            ws = new WebSocket('ws://192.168.1.100:8765');
 
             ws.addEventListener("close", function() {
                 setTimeout(function() { start_ws(); }, 1000);

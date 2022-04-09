@@ -96,14 +96,15 @@ function message_handler(event){
 }
 
 /// Creating Web Socket
-function create_websocket() {
-    ws = new WebSocket('ws://localhost:8765');
+function create_websocket(ws_ip = 'localhost', ws_port = 8765) {
+    ws = new WebSocket('ws://' + ws_ip + ':' + ws_port);
 
     ws.addEventListener("close", function() {
         alert_field.text("Нет соединения с хостом");
         alert_field.show();
-        setTimeout(function() { create_websocket(); }, 1000);
-    })
+        if (!ws_full_close) setTimeout(function() { create_websocket(); }, 1000);
+        ws_full_close = false;
+    });
     ws.addEventListener('open', function () { 
         ws.send("Transmitter"); 
         alert_field.hide();
@@ -148,6 +149,8 @@ function get_couplets() {
 function on_load_script(){        
     alert_field = $("#alert-danger");
     alert_field.hide();
+
+    ws_full_close = false;
 
     /// Web Socket
     create_websocket();
@@ -259,8 +262,17 @@ function on_load_script(){
         setTimeout(get_couplets, 200);
     })
 
+    /// Settings modal
+    $('#save_settings').on('click', function () {
+        ws_full_close = true;
+        ws.close();
+        create_websocket(ws_ip=$('#ws_ip').val(), ws_port=$('#ws_port').val());
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('settings_modal')).hide();
+    })
+
     /// Close socket before closing
     $(window).on("beforeunload", function(){
+        ws_full_close = true;
         ws.close();
     });
 }

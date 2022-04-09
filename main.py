@@ -1,7 +1,9 @@
 import asyncio
+import pathlib
 import websockets
 import json
 import sqlite3
+import ssl
 
 recievers = set()
 transmitters = set()
@@ -206,7 +208,7 @@ async def handler(websocket):
         return
 
 async def main():
-    async with websockets.serve(handler, "localhost", 8765):
+    async with websockets.serve(handler, "192.168.1.100", 8765):
         await asyncio.Future()
 
 if __name__ == "__main__":
