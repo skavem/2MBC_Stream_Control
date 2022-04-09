@@ -47,6 +47,7 @@
                     </li>
                 </ul>
             </div>
+            <button class="btn btn-outline-light"><i class="bi-gear"></i></button>
         </div>
     </nav>
 
@@ -83,13 +84,15 @@
             </form>
             <form class="d-flex justify-content-center flex-column" id="Songs_send">
                 <div class="d-flex flex-nowrap flex-grow-1">
-                    <select name="song" id="song" class="form-select me-2" multiple size="10"></select>
-                    <select name="couplet" id="couplet" class="form-select me-2" multiple size="10"></select>
-                    <div class="d-flex flex-column justify-content-around">
-                        <button type="button" class="btn btn-secondary" id="couplet_add" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="new"><i class="bi-plus-circle"></i></button>
-                        <button type="button" class="btn btn-secondary" id="couplet_edit" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="edit"><i class="bi-pencil-fill"></i></button>
-                        <button type="button" class="btn btn-secondary" id="couplet_delete"><i class="bi-trash-fill"></i></button>
-                        <button type="button" class="btn btn-secondary" id="couplet_up"><i class="bi-caret-up-fill"></i></button>
+                    <div class="d-lg-flex me-2">
+                        <select name="song" id="song" class="form-select me-2" multiple size="10"></select>
+                        <select name="couplet" id="couplet" class="form-select" multiple size="5"></select>
+                    </div>
+                    <div class="d-flex flex-column justify-content-center">
+                        <button type="button" class="btn btn-secondary mb-2" id="couplet_add" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="new"><i class="bi-plus-circle"></i></button>
+                        <button type="button" class="btn btn-secondary mb-2" id="couplet_edit" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="edit"><i class="bi-pencil-fill"></i></button>
+                        <button type="button" class="btn btn-secondary mb-2" id="couplet_delete"><i class="bi-trash-fill"></i></button>
+                        <button type="button" class="btn btn-secondary mb-2 id="couplet_up"><i class="bi-caret-up-fill"></i></button>
                         <button type="button" class="btn btn-secondary" id="couplet_down"><i class="bi-caret-down-fill"></i></button>
                     </div>
                 </div>

@@ -42,7 +42,8 @@ function message_handler(event){
             verse = verses[i];
             found_vrs.append($('<option>', {
                 value: verse[3]+";"+verse[2]+";"+verse[1], 
-                text: verse[3]+" "+verse[2]+":"+verse[1]+" "+verse[0], class: 'text-wrap'
+                text: verse[3]+" "+verse[2]+":"+verse[1]+" "+verse[0], 
+                class: 'text-wrap'
             }));
         }
     }
@@ -67,7 +68,7 @@ function message_handler(event){
         $couplets.empty();
         message['couplets'].forEach(couplet => {
             if (couplet) 
-                $couplets.append($('<option>', {value: couplet[0]})
+                $couplets.append($('<option>', {value: couplet[0], class: 'text-wrap'})
                     .append([
                         $('<span>', {text: couplet[1], class: 'name'}),
                         $('<span>', {text: ': '}),

@@ -12,7 +12,12 @@ Bible = con.cursor()
 Books = dict(Bible.execute('SELECT b.abbrev, b.full_name FROM Book b;').fetchall())
 Songs = list(Bible.execute('SELECT s.id, s.number, s.name FROM Song s ORDER BY s.number;').fetchall())
 
-async def message_handler(websocket):
+async def message_handler(websocket):    
+    def check_str_for_restricted_symbols(check_str: str):
+        restricted_chars = ',.;"\'][<>?\{\}\\~`'
+        if any((c in restricted_chars) for c in check_str): return True
+        return False
+
     async for parcel in websocket:
         if (parcel == 'Transmitter'):
             transmitters.add(websocket)
@@ -73,11 +78,8 @@ async def message_handler(websocket):
                     )
                 
             if "find_verse" in parcel:
-                if parcel['find_verse'] == '': continue
-
-                restricted_chars = ',.;"\'][<>?\{\}\\~`'
-                search_str = parcel['find_verse']
-                if any((c in restricted_chars) for c in search_str): 
+                if not len(parcel['find_verse'].replace(' ', '')): continue
+                if check_str_for_restricted_symbols(parcel['find_verse']): 
                     await websocket.send(json.dumps({'error': 'Использован запрещенный символ'}, ensure_ascii=False))
                     continue
                     
@@ -87,7 +89,7 @@ async def message_handler(websocket):
                         LEFT JOIN Verse v ON vs.id = v.id \
                         INNER JOIN Chapter c ON v.chapter_of = c.id \
                         INNER JOIN Book b ON c.book_of = b.abbrev\
-                        WHERE VerseSearch MATCH "{search_str}" ORDER BY rank LIMIT 25').fetchall()
+                        WHERE VerseSearch MATCH "{parcel["find_verse"]}" ORDER BY rank LIMIT 25').fetchall()
                     await websocket.send(json.dumps({'search_result': verses}, ensure_ascii=False))
                 except Exception as e:
                     await websocket.send(json.dumps({ "error": str(e) }, ensure_ascii=False))
@@ -107,7 +109,16 @@ async def message_handler(websocket):
                 websockets.broadcast(recievers, json.dumps({'couplet': text}, ensure_ascii=False))
 
             if 'song_search_str' in parcel:
-                found_id = Bible.execute(f'SELECT S.id FROM Song S WHERE S.name_upper LIKE "%{parcel["song_search_str"].upper()}%"').fetchall()
+                song_search_str = parcel['song_search_str'] 
+                if not len(song_search_str.replace(' ', '')): continue
+                if check_str_for_restricted_symbols(song_search_str): 
+                    await websocket.send(json.dumps({'error': 'Использован запрещенный символ'}, ensure_ascii=False))
+                    continue
+                
+                if any((c in '1234567890') for c in song_search_str):
+                    found_id = Bible.execute(f'SELECT S.id FROM Song S WHERE S.number = {int(song_search_str)}').fetchall()
+                else:
+                    found_id = Bible.execute(f'SELECT S.id FROM Song S WHERE S.name_upper LIKE "%{song_search_str.upper()}%"').fetchall()
                 if not len(found_id):
                     continue
 
@@ -175,7 +186,9 @@ async def message_handler(websocket):
                 con.commit()
 
             if 'hide_song' in parcel:
-                websockets.broadcast(recievers, json.dumps({'hide_song': True}, ensure_ascii=False));
+                websockets.broadcast(recievers, json.dumps({'hide_song': True}, ensure_ascii=False))
+
+
 
 async def handler(websocket):
     recievers.add(websocket)
