@@ -244,7 +244,7 @@ function on_load_script(){
     $couplet_delete = $('#couplet_delete');
     $couplet_delete.on('click', function () {
         if(confirm('Удалить куплет?')) {
-            ws.send(JSON.stringify({'remove_couplet_id': $couplet_field.val()[0], 'remove_from_song_id': $song_field.val()[0]}));
+            ws.send(JSON.stringify({'remove_couplet_id': $couplet_field.val(), 'remove_from_song_id': $song_field.val()}));
             setTimeout(get_couplets, 200);
         } else {
             return;
@@ -253,12 +253,12 @@ function on_load_script(){
 
     $couplet_up = $('#couplet_up');
     $couplet_up.on('click', function () {
-        ws.send(JSON.stringify({'couplet_move_up': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}));
+        ws.send(JSON.stringify({'couplet_move_up': $couplet_field.val(), 'move_from_song_id': $song_field.val()}));
         setTimeout(get_couplets, 200);
     })
     $couplet_down = $('#couplet_down');
     $couplet_down.on('click', function () {
-        ws.send(JSON.stringify({'couplet_move_down': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}));
+        ws.send(JSON.stringify({'couplet_move_down': $couplet_field.val(), 'move_from_song_id': $song_field.val()}));
         setTimeout(get_couplets, 200);
     })
 
