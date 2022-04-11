@@ -96,7 +96,7 @@ function message_handler(event){
 }
 
 /// Creating Web Socket
-function create_websocket(ws_ip = 'localhost', ws_port = 8765) {
+function create_websocket(ws_ip = '192.168.1.100', ws_port = 8765) {
     ws = new WebSocket('ws://' + ws_ip + ':' + ws_port);
 
     ws.addEventListener("close", function() {
@@ -253,12 +253,12 @@ function on_load_script(){
 
     $couplet_up = $('#couplet_up');
     $couplet_up.on('click', function () {
-        ws.send(JSON.stringify({'couplet_move_up': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}))
+        ws.send(JSON.stringify({'couplet_move_up': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}));
         setTimeout(get_couplets, 200);
     })
     $couplet_down = $('#couplet_down');
     $couplet_down.on('click', function () {
-        ws.send(JSON.stringify({'couplet_move_down': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}))
+        ws.send(JSON.stringify({'couplet_move_down': $couplet_field.val()[0], 'move_from_song_id': $song_field.val()[0]}));
         setTimeout(get_couplets, 200);
     })
 
@@ -269,6 +269,37 @@ function on_load_script(){
         create_websocket(ws_ip=$('#ws_ip').val(), ws_port=$('#ws_port').val());
         bootstrap.Modal.getOrCreateInstance(document.getElementById('settings_modal')).hide();
     })
+
+    /// Font settings modal
+    $song_font_size = $('#song_font_size');
+    $('#song_font_size_plus').on('click', () => {
+        $song_font_size.val(parseFloat($song_font_size.val()) + 0.5);
+    });
+    $('#song_font_size_minus').on('click', () => {
+        $song_font_size.val(parseFloat($song_font_size.val()) - 0.5);
+    });
+    $('#song_font_size_reset').on('click', () => {
+        $song_font_size.val(5);
+    });
+    
+    $verse_font_size = $('#verse_font_size');
+    $('#verse_font_size_plus').on('click', () => {
+        $verse_font_size.val(parseFloat($verse_font_size.val()) + 0.5);
+    });
+    $('#verse_font_size_minus').on('click', () => {
+        $verse_font_size.val(parseFloat($verse_font_size.val()) - 0.5);
+    });
+    $('#verse_font_size_reset').on('click', () => {
+        $verse_font_size.val(4);
+    });
+    
+    $('#save_font').on('click', () => {
+        ws.send(JSON.stringify({
+            'song_font_size_change': parseFloat($song_font_size.val()), 
+            'verse_font_size_change': parseFloat($verse_font_size.val()) 
+        }));
+    })
+
 
     /// Close socket before closing
     $(window).on("beforeunload", function(){

@@ -1,9 +1,7 @@
 import asyncio
-import pathlib
 import websockets
 import json
 import sqlite3
-import ssl
 
 recievers = set()
 transmitters = set()
@@ -186,6 +184,9 @@ async def message_handler(websocket):
                     WHERE song_id = {song_id} AND couplet_id = {parcel["couplet_move_down"]}')
 
                 con.commit()
+            
+            if 'song_font_size_change' in parcel:                
+                websockets.broadcast(recievers, json.dumps(parcel, ensure_ascii=False))
 
             if 'hide_song' in parcel:
                 websockets.broadcast(recievers, json.dumps({'hide_song': True}, ensure_ascii=False))

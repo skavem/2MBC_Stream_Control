@@ -9,6 +9,7 @@
 
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-icons.css">
+
     <script src="js/jquery.min.js"></script>
     <script src="js/popper.min.js"></script>
     <script src="js/bootstrap.min.js"></script>
@@ -27,7 +28,7 @@
                 <ul class="nav nav-pills me-auto ms-auto" id="pills-tab" role="tablist">
                     <li class="nav-item me-2" role="presentation">
                         <button 
-                        class="btn btn-outline-light" 
+                        class="btn btn-outline-light active" 
                         id="pills-Bible-tab" 
                         data-bs-toggle="pill" 
                         data-bs-target="#pills-Bible" 
@@ -37,7 +38,7 @@
                     </li>
                     <li class="nav-item" role="presentation">
                         <button 
-                        class="btn btn-outline-light active" 
+                        class="btn btn-outline-light" 
                         id="pills-songs-tab" 
                         data-bs-toggle="pill"
                         data-bs-target="#pills-songs"
@@ -51,11 +52,12 @@
         </div>
     </nav>
 
+    <div id="alert-danger" class="alert alert-danger" role="alert">
+        Нет подключения к хосту!
+    </div>
+
     <div class="d-flex justify-content-center align-items-center mt-2 tab-content" id="pills-tabContent">
-        <div class="col-10 m-2 text-center tab-pane fade" id="pills-Bible" role="tabpanel" aria-labelledby="pills-Bible-tab">
-            <div id="alert-danger" class="alert alert-danger" role="alert">
-                Нет подключения к хосту!
-            </div>
+        <div class="col-10 m-2 text-center tab-pane fade show active" id="pills-Bible" role="tabpanel" aria-labelledby="pills-Bible-tab">
             <form class="d-flex justify-content-center align-items-center flex-wrap border-0 border-bottom pb-3" id="Bible_send">
                 <div class="d-flex flex-nowrap m-1 flex-grow-1">
                     <select name="book" id="book" class="form-select me-2" multiple size="6"></select>
@@ -63,6 +65,7 @@
                 </div>
                 <select name="vr" id="vr" class="form-select m-1" size="10"></select>
                 <div class="d-flex flex-nowrap flex-lg-wrap">
+                    <button type="button" class="btn btn-dark m-1" data-bs-toggle="modal" data-bs-target="#font_edit_modal"><i class="bi-fonts"></i> Текст</button>
                     <button type="submit" class="btn btn-dark m-1"><i class="bi-eye-fill"></i> Показать!</button>
                     <button type="reset" class="btn btn-outline-dark m-1"><i class="bi-eye-slash-fill"></i> Спрятать!</button>
                 </div>
@@ -77,7 +80,7 @@
             </div>
         </div>
 
-        <div class="col-10 m-2 text-center tab-pane fade show active" id="pills-songs" role="tabpanel" aria-labelledby="pills-songs-tab">
+        <div class="col-10 m-2 text-center tab-pane fade" id="pills-songs" role="tabpanel" aria-labelledby="pills-songs-tab">
             <form action="" class="d-flex justify-content-center mb-2 border-0 border-bottom pb-2" id="Song_search">
                 <input type="text" name="song_search_str" id="song_search_str" class="form-control">
                 <button type="submit" class="btn btn-secondary ms-2"><i class="bi-search"></i></button>
@@ -89,14 +92,15 @@
                         <select name="couplet" id="couplet" class="form-select" size="5"></select>
                     </div>
                     <div class="d-flex flex-column justify-content-center">
-                        <button type="button" class="btn btn-secondary mb-2" id="couplet_add" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="new"><i class="bi-plus-circle"></i></button>
-                        <button type="button" class="btn btn-secondary mb-2" id="couplet_edit" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="edit"><i class="bi-pencil-fill"></i></button>
+                        <button type="button" class="btn btn-secondary mb-2" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="new"><i class="bi-plus-circle"></i></button>
+                        <button type="button" class="btn btn-secondary mb-2" data-bs-toggle="modal" data-bs-target="#couplet_edit_modal" data-bs-call-type="edit"><i class="bi-pencil-fill"></i></button>
                         <button type="button" class="btn btn-secondary mb-2" id="couplet_delete"><i class="bi-trash-fill"></i></button>
-                        <button type="button" class="btn btn-secondary mb-2 id="couplet_up"><i class="bi-caret-up-fill"></i></button>
+                        <button type="button" class="btn btn-secondary mb-2" id="couplet_up"><i class="bi-caret-up-fill"></i></button>
                         <button type="button" class="btn btn-secondary" id="couplet_down"><i class="bi-caret-down-fill"></i></button>
                     </div>
                 </div>
                 <div class="d-flex flex-nowrap flex-lg-wrap justify-content-center mt-1">
+                    <button type="button" class="btn btn-dark m-1" data-bs-toggle="modal" data-bs-target="#font_edit_modal"><i class="bi-fonts"></i> Текст</button>
                     <button type="submit" class="btn btn-dark m-1"><i class="bi-eye-fill"></i> Показать!</button>
                     <button type="reset" class="btn btn-outline-dark m-1"><i class="bi-eye-slash-fill"></i> Спрятать!</button>
                 </div>
@@ -106,54 +110,93 @@
 
     <div class="modal fade" id="couplet_edit_modal" tabindex="-1" aria-labelledby="couplet_edit_modal_label" aria-hidden="true">
         <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="couplet_edit_modal_label">Изменить куплет</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-              <form id="Couplet_edit">
-                <div class="mb-3">
-                  <input type="hidden" name="edit_type" id="couplet_edit_type_input">
-                  <input type="hidden" name="couplet_id" id="couplet_id_input">
-                  <label for="couplet_new_name" class="col-form-label">Имя куплета:</label>
-                  <textarea class="form-control" name="couplet_name" id="couplet_new_name" rows="1"></textarea>
-                  <label for=" " class="col-form-label">Текст:</label>
-                  <textarea class="form-control" name="couplet_text" id="couplet_new_text" rows="8"></textarea>
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="couplet_edit_modal_label">Изменить куплет</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                 </div>
-              </form>
+                <div class="modal-body">
+                    <form id="Couplet_edit">
+                        <div class="mb-3">
+                            <input type="hidden" name="edit_type" id="couplet_edit_type_input">
+                            <input type="hidden" name="couplet_id" id="couplet_id_input">
+                            <label for="couplet_new_name" class="col-form-label">Имя куплета:</label>
+                            <textarea class="form-control" name="couplet_name" id="couplet_new_name" rows="1"></textarea>
+                            <label for=" " class="col-form-label">Текст:</label>
+                            <textarea class="form-control" name="couplet_text" id="couplet_new_text" rows="8"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
+                    <button type="button" class="btn btn-primary" id="save_couplet_edit">Сохранить</button>
+                </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
-              <button type="button" class="btn btn-primary" id="save_couplet_edit">Сохранить</button>
-            </div>
-          </div>
         </div>
-      </div>
-      
-      <div class="modal fade" id="settings_modal" tabindex="-1" aria-labelledby="settings_modal" aria-hidden="true">
+    </div>
+
+    <div class="modal fade" id="settings_modal" tabindex="-1" aria-labelledby="settings_modal" aria-hidden="true">
         <div class="modal-dialog">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title">Настройки</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group mb-2">
-                    <span class="input-group-text" id="label_addon_ws_ip">IP:</span>
-                    <input class="form-control" type="text" id="ws_ip" aria-describedby="label_addon_ws_ip" value="192.168.1.100">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Настройки</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
                 </div>
-                <div class="input-group">
-                    <span class="input-group-text" id="label_addon_ws_port">Порт:</span>
-                    <input class="form-control" type="text" id="ws_port" aria-describedby="label_addon_ws_port" value="8765">
+                <div class="modal-body">
+                    <div class="input-group mb-2">
+                        <span class="input-group-text" id="label_addon_ws_ip">IP:</span>
+                        <input class="form-control" type="text" id="ws_ip" aria-describedby="label_addon_ws_ip" value="192.168.1.100">
+                    </div>
+                    <div class="input-group">
+                        <span class="input-group-text" id="label_addon_ws_port">Порт:</span>
+                        <input class="form-control" type="text" id="ws_port" aria-describedby="label_addon_ws_port" value="8765">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
+                    <button type="button" class="btn btn-dark" id="save_settings">Сохранить</button>
                 </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
-              <button type="button" class="btn btn-dark" id="save_settings">Сохранить</button>
-            </div>
-          </div>
         </div>
-      </div>
+    </div>
+
+    <div class="modal fade" id="font_edit_modal" tabindex="-1" aria-labelledby="font_edit_modal" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Настройки текста</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label" id="label_font_size">Размер шрифта песни:</label>
+                    <div class="d-flex">
+                        <div class="col-6">
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-dark" style="min-width: 2.5rem;" id="song_font_size_minus">-</button>
+                                <input class="form-control text-center" type="text" id="song_font_size" aria-describedby="label_font_size" value="5">
+                                <button type="button" class="btn btn-outline-dark" style="min-width: 2.5rem;" id="song_font_size_plus">+</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-dark ms-2" id="song_font_size_reset"><i class="bi-arrow-counterclockwise"></i> Сбросить</button>
+                    </div>
+                    <label class="form-label" id="label_font_size">Размер шрифта стиха:</label>
+                    <div class="d-flex">
+                        <div class="col-6">
+                            <div class="input-group">
+                                <button type="button" class="btn btn-outline-dark" style="min-width: 2.5rem;" id="verse_font_size_minus">-</button>
+                                <input class="form-control text-center" type="text" id="verse_font_size" aria-describedby="label_font_size" value="4">
+                                <button type="button" class="btn btn-outline-dark" style="min-width: 2.5rem;" id="verse_font_size_plus">+</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-outline-dark ms-2" id="verse_font_size_reset"><i class="bi-arrow-counterclockwise"></i> Сбросить</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-dark" data-bs-dismiss="modal">Отменить</button>
+                    <button type="button" class="btn btn-dark" id="save_font">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
