@@ -4,11 +4,11 @@ function message_handler(event){
     console.log(message);
     
     /// If verse
-    if(message.hasOwnProperty("books")) {
+    if(message.hasOwnProperty('books')) {
         var books = $('#book');
-        JSON.parse(message["books"], (abb, full_name) => {
+        for ([abb, full_name] of Object.entries(message['books'])) {
             if (abb) books.append($('<option>', { value: abb, text:full_name }));
-        });
+        };
         books.prop('selectedIndex', 0);
         get_chapters();
     }
@@ -52,7 +52,7 @@ function message_handler(event){
     if(message.hasOwnProperty("songs")) {
         let $songs = $('#song');
         $songs.empty();
-        JSON.parse(message['songs']).forEach(song_list => {
+        message['songs'].forEach(song_list => {
             let id = song_list[0];
             let number = song_list[1];
             let text = song_list[2];
@@ -89,9 +89,9 @@ function message_handler(event){
     /// If error
     if(message.hasOwnProperty("error")) {
         console.log("[Error]: " + message["error"]);
-        alert_field.text(message["error"]);
-        alert_field.show();
-        setTimeout(function() { alert_field.hide(); }, 4000);
+        $alert_field.text(message["error"]);
+        $alert_field.show();
+        setTimeout(function() { $alert_field.hide(); }, 4000);
     }
 }
 
@@ -100,14 +100,14 @@ function create_websocket(ws_ip = '192.168.1.100', ws_port = 8765) {
     ws = new WebSocket('ws://' + ws_ip + ':' + ws_port);
 
     ws.addEventListener("close", function() {
-        alert_field.text("Нет соединения с хостом");
-        alert_field.show();
+        $alert_field.text("Нет соединения с хостом");
+        $alert_field.show();
         if (!ws_full_close) setTimeout(function() { create_websocket(); }, 1000);
         ws_full_close = false;
     });
     ws.addEventListener('open', function () { 
         ws.send("Transmitter"); 
-        alert_field.hide();
+        $alert_field.hide();
     });
     ws.addEventListener('message', function(event) { 
         message_handler(event); 
@@ -115,40 +115,46 @@ function create_websocket(ws_ip = '192.168.1.100', ws_port = 8765) {
 }
 
 /// Send data to host
-function send_data(form) {
+function form_to_dict(form) {
     var unindexed_array = form.serializeArray();
-    var to_json = {};
+    var ret_val = {};
 
     $.map(unindexed_array, function(n, i) {
-        to_json[n['name']] = n['value']
+        ret_val[n['name']] = n['value']
     });
     
-    ws.send(JSON.stringify(to_json));
+    return ret_val;
+}
+
+function send_data(type, object, data) {
+    var json_data =  JSON.stringify({'type': type, 'object': object, 'data': data})
+    ws.send(json_data);
 }
 
 /// Change chapters for book
 function get_chapters() {
-    ws.send(JSON.stringify({"get_chapters": book_field.prop('value')}));
+    send_data(type='get', object='book', data={'book_id': book_field.prop('value')});
 }
 
 /// Change verses for chapter
 function get_verses(){
-    ws.send(JSON.stringify(
-        { "get_verses": { "book": book_field.prop('value'),
-                          "ch": chapter_field.prop('value') } 
-        }
-    ));
+    send_data(type='get', object='chapter', data=
+    { 
+        'book_id': book_field.prop('value'),
+        'ch_id': chapter_field.prop('value') 
+    }
+    );
 }
 
 /// Change song for couplets
-function get_couplets() {
-    ws.send(JSON.stringify({"get_couplets": $song_field.prop('value')}));
+function get_couplets() {    
+    send_data(type='get', object='song', data={'song_id': $song_field.prop('value')});
 }
 
 /// On body loaded
 function on_load_script(){        
-    alert_field = $("#alert-danger");
-    alert_field.hide();
+    $alert_field = $('#alert-danger');
+    $alert_field.hide();
 
     ws_full_close = false;
 
@@ -159,11 +165,12 @@ function on_load_script(){
     Bible_send = $("#Bible_send");
     Bible_send.on("submit", function (event) {
         event.preventDefault();
-        send_data(Bible_send);
+        var form_data = form_to_dict(Bible_send);
+        send_data(type='send', object='verse', data=form_data);
     } );
     Bible_send.on("reset", function (event) {
         event.preventDefault();
-        ws.send(JSON.stringify({"hide_verse": true}));
+        send_data(type='send', object='reciever', data={'hide_verse': true})
     } );
 
     /// Bible navigation
@@ -175,16 +182,17 @@ function on_load_script(){
 
     verses_field = $("#vr");
     verses_field.on("dblclick", function() {
-        send_data(Bible_send);
+        var form_data = form_to_dict(Bible_send);
+        send_data(type='send', object='verse', data=form_data);
     });
 
     /// Bible search
     $('#Bible_search').on('submit', function (event) {
         event.preventDefault();
-        ws.send(JSON.stringify({'find_verse': $('#search_str').prop('value')}));
+        send_data(type='get', object='verse', data={'verse_search_srt': $('#search_str').prop('value')});
     });
     $('#search_str').on('input', function() {
-        ws.send(JSON.stringify({'find_verse': $('#search_str').prop('value')}));
+        send_data(type='get', object='verse', data={'verse_search_srt': $('#search_str').prop('value')});
     })
 
     $('#found_vrs').on('dblclick', function () {
@@ -198,11 +206,12 @@ function on_load_script(){
     $Songs_send = $('#Songs_send');
     $Songs_send.on('submit', function(event) {
         event.preventDefault();
-        send_data($Songs_send);
+        var form_data = form_to_dict($Songs_send);
+        send_data(type='send', object='couplet', data=form_data);
     });
     $Songs_send.on('reset', function(event) {
         event.preventDefault();
-        ws.send(JSON.stringify({"hide_song": true}));
+        send_data(type='send', object='reciever', data={'hide_song': true})
     });
 
     $song_field = $('#song');
@@ -210,14 +219,16 @@ function on_load_script(){
 
     $couplet_field = $('#couplet');
     $couplet_field.on('dblclick', function () {
-        send_data($Songs_send); 
+        var form_data = form_to_dict($Songs_send);
+        send_data(type='send', object='couplet', data=form_data);
     });
 
     /// Song search
     $Song_search = $('#Song_search');
     $Song_search.on('submit', function(event) {
         event.preventDefault();
-        send_data($Song_search);
+        var form_data = form_to_dict($Song_search);
+        send_data(type='get', object='song', data=form_data);
     })
 
     /// Couplet editing modal
@@ -235,16 +246,22 @@ function on_load_script(){
 
     /// Couplet editing
     $Couplet_edit = $('#Couplet_edit');
-    $('#save_couplet_edit').on('click', function () {
-        send_data($Couplet_edit);
+    $('#save_couplet_edit').on('click', function () {        
+        var form_data = form_to_dict($Couplet_edit);
+        send_data(type='edit', object='couplet', data=form_data);
+
         setTimeout(get_couplets, 200);
+
         bootstrap.Modal.getInstance(document.getElementById('couplet_edit_modal')).hide()
     });
 
     $couplet_delete = $('#couplet_delete');
     $couplet_delete.on('click', function () {
         if(confirm('Удалить куплет?')) {
-            ws.send(JSON.stringify({'remove_couplet_id': $couplet_field.val(), 'remove_from_song_id': $song_field.val()}));
+            send_data(type='delete', object='couplet', data={
+                'couplet_id': $couplet_field.val(), 
+                'song_id': $song_field.val()
+            });
             setTimeout(get_couplets, 200);
         } else {
             return;
@@ -253,12 +270,12 @@ function on_load_script(){
 
     $couplet_up = $('#couplet_up');
     $couplet_up.on('click', function () {
-        ws.send(JSON.stringify({'couplet_move_up': $couplet_field.val(), 'move_from_song_id': $song_field.val()}));
+        send_data(type='edit', object='couplet', data={'edit_type': 'move_up', 'couplet_id':  $couplet_field.val(), 'song_id': $song_field.val()});
         setTimeout(get_couplets, 200);
     })
     $couplet_down = $('#couplet_down');
     $couplet_down.on('click', function () {
-        ws.send(JSON.stringify({'couplet_move_down': $couplet_field.val(), 'move_from_song_id': $song_field.val()}));
+        send_data(type='edit', object='couplet', data={'edit_type': 'move_down', 'couplet_id':  $couplet_field.val(), 'song_id': $song_field.val()});
         setTimeout(get_couplets, 200);
     })
 
@@ -294,10 +311,10 @@ function on_load_script(){
     });
     
     $('#save_font').on('click', () => {
-        ws.send(JSON.stringify({
+        send_data(type='send', object='reciever', data={
             'song_font_size_change': parseFloat($song_font_size.val()), 
             'verse_font_size_change': parseFloat($verse_font_size.val()) 
-        }));
+        })
     })
 
 

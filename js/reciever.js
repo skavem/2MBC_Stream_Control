@@ -15,11 +15,6 @@ function message_handler(event){
     input = JSON.parse(event.data);
     console.log(input);
 
-    if (input.hasOwnProperty('hide_verse')) {
-        $verse_field.animate([{opacity: 1}, {opacity: 0}], {duration: 1000, fill: "forwards"});
-        text_shown = false;
-        return;
-    }
     if (input.hasOwnProperty('verse')) {
         $verse_field.classList.remove('d-none');
         $song_field.classList.add('d-none');
@@ -31,19 +26,27 @@ function message_handler(event){
         text_shown = true;
         return;
     }
+    if (input.hasOwnProperty('hide_verse')) {
+        $verse_field.animate([{opacity: 1}, {opacity: 0}], {duration: 1000, fill: "forwards"});
+        text_shown = false;
+        return;
+    }
     if (input.hasOwnProperty('couplet')) {
         $verse_field.classList.add('d-none');
         $song_field.classList.remove('d-none');
         $song_text.textContent = input['couplet'];
         console.log(input['couplet'])
+        return;
     }
     if (input.hasOwnProperty('hide_song')) {
         $verse_field.classList.remove('d-none');
         $song_field.classList.add('d-none');
+        return;
     }
     if (input.hasOwnProperty('song_font_size_change')) {
         $song_text.style.fontSize = input['song_font_size_change']+'em';
         $verse_text.style.fontSize = input['verse_font_size_change']+'em';
+        return;
     }
 }
 
